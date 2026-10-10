@@ -664,6 +664,7 @@ export const MESSAGES_EN = {
   "status.ready": "Ready",
   "status.alreadyAligned": "Already aligned",
   "status.buildingBrep": "Building B-Rep… first STEP export loads the OpenCascade kernel (~22 MB), one time per session",
+  "status.buildingLink": "Building the link …",
   "status.buildingSvg": "Building SVG top-view projection…",
   "status.buildingSketch": "Building exact sketch geometry…",
   "status.chooseSelectFirst": "Choose Select before adding a sketch image",
@@ -1482,6 +1483,11 @@ export const MESSAGES_EN = {
   "export.unlimited": "Unlimited",
   "export.actionCount": "{count} actions",
   "export.saveToShared": "Save to the server",
+  "export.copyLink": "Copy link",
+  "export.copyLinkHint": "A link that opens this STL as a new design in layerling. The model travels inside the link, so it only suits small parts.",
+  "status.linkCopied": "Link copied ({size}). Whoever opens it gets the model as a new design.",
+  "status.linkTooLarge": "This model is too large for a link ({size}). Export the STL and share the file instead.",
+  "status.linkCopyFailed": "The link could not be copied to the clipboard.",
   "export.savingProject": "Saving design…",
   "export.saveProject": "Save layerling design",
   "export.buildingStep": "Building STEP…",
@@ -2084,6 +2090,12 @@ export const MESSAGES_EN = {
   "notice.importedDesignName": "Imported design ({count} files)",
   "notice.importing": "Importing {index} of {total}: {name}",
   "notice.importProjectFailed": "Could not create a design for the imported files",
+  "notice.importLink.defaultName": "Linked model",
+  "notice.importLink.fetching": "Loading the linked model from {host} …",
+  "notice.importLink.damaged": "The link is damaged or incomplete; it may have been cut off when it was shared.",
+  "notice.importLink.tooLarge": "The linked model is too large to open from a link.",
+  "notice.importLink.unsupported": "A link can open STL, OBJ, 3MF, STEP and SVG models only.",
+  "notice.importLink.fetchFailed": "The linked model could not be loaded. The site may not allow other pages to fetch its files; download it and drop it here instead.",
 } as const;
 
 export type MessageKey = keyof typeof MESSAGES_EN;

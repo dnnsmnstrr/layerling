@@ -4,6 +4,10 @@ layerling started over at 1.0.0 when it was forked from SketchForge-3D 1.0.9.
 Everything from 1.0.9 downwards is SketchForge's history, kept here because the
 code still carries it - so a lower number further down is older, not newer.
 
+## Unreleased
+
+- **Open a model from a link:** A link to layerling with `#import=` opens a model as a new design, as if the file had been dropped in. In the export window with STL chosen, "Copy link" puts one on the clipboard that carries the STL itself, compressed with DEFLATE and written in base64url after the `#`, so the model never reaches a server; it suits small parts, and links longer than about 1 MB are refused with a reason. `#import=https://…` fetches an STL, OBJ, 3MF, STEP or SVG from another site instead, without cookies, where that site allows it (CORS). `#name=` names the design. A link cannot open a design file or a backup, an embedded model may unpack to at most 64 MB and a fetched one weigh at most 128 MB, and the address is cleared once read, so reloading does not import twice.
+
 ## 1.58.0
 
 - **Cancelling a sketch returns to the 3D editor:** Cancelling a new or an edited sketch (extrude and revolve) left the toolbar on the Sketch tab, now empty, until you clicked 3D editor yourself; finishing one switched back as expected. Cancelling now switches back too and closes the stroke panel. Reported by @prmod3d in #212.

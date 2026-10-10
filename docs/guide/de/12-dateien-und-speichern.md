@@ -57,6 +57,13 @@ Ein Entwurf, der mit einer **neueren layerling-Version** gespeichert wurde, kann
 
 Bilder als Vorlage fügst du im Skizzenmodus ein, siehe [Skizzen](chapter:skizzen).
 
+### Ein Modell aus einem Link öffnen
+
+Ein Link kann ein Modell tragen. Wer ihn öffnet, bekommt das Modell als neuen Entwurf im eigenen Browser, als hätte er die Datei hineingezogen; hochgeladen wird nichts, denn das Modell steht hinter dem `#` der Adresse, dem Teil, den ein Browser nie verschickt.
+
+- **Ein Teil weitergeben:** Im Exportfenster mit STL legt {{ui:export.copyLink}} so einen Link in die Zwischenablage. Die STL steckt gepackt im Link selbst und eignet sich daher für kleine Teile: Ein Winkel oder eine Dose mit ein paar tausend Dreiecken ergibt einen Link von einigen Dutzend Kilobyte. layerling gibt Links bis etwa 1 MB heraus; viele Chat- und Mailprogramme schneiden lange Links viel früher ab, und ein abgeschnittener Link sagt das beim Öffnen.
+- **Eine Datei anderswo im Netz:** `https://layerling.com/#import=https://example.com/teil.stl` holt die Datei und öffnet sie. Das geht mit STL, OBJ, 3MF, STEP und SVG; die Seite muss erlauben, dass andere Seiten ihre Dateien abrufen (CORS), was die Rohdateien auf GitHub tun und viele Download-Seiten nicht. `#name=Winkel&import=…` gibt dem Entwurf einen Namen.
+
 ## Ein importiertes Netz vereinfachen
 
 Ein gescanntes oder modelliertes Netz hat oft weit mehr Dreiecke, als seine Form braucht, und jedes davon wird beim Verschieben, Schneiden und Speichern mitgeschleppt. {{ui:simplify.title}} in der Gruppe Ändern (oder im Rechtsklickmenü des Körpers) zeigt das Netz, wie es ist, neben dem, was ein gewählter Anteil seiner Dreiecke davon übrig lässt; beide Ansichten drehen und zoomen gemeinsam, mit den Maustasten der Arbeitsebene. Lege fest, wie viel bleiben soll, als Prozentsatz oder als Zahl von Dreiecken, und {{ui:simplify.apply}} übernimmt das leichtere Netz. Das Ergebnis ist ein einfaches Netz: Beim Ergebnis eines Schnitts oder einer Vereinigung entfallen {{ui:group.edit}} und die ursprünglichen Teile.

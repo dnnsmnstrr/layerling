@@ -1,7 +1,7 @@
 "use client";
 
 import { GuideHelpLink } from "@/components/GuideHelpLink";
-import { AlertTriangle, Check, Percent, Circle as CircleIcon, CloudUpload, Download, Eye, EyeOff, FilePlus2, FolderOpen, Hexagon as HexagonIcon, Info, ListTree, Pencil, Search, Square as SquareIcon, Triangle as TriangleIcon, X } from "lucide-react";
+import { AlertTriangle, Check, Percent, Circle as CircleIcon, CloudUpload, Download, Link as LinkIcon, Eye, EyeOff, FilePlus2, FolderOpen, Hexagon as HexagonIcon, Info, ListTree, Pencil, Search, Square as SquareIcon, Triangle as TriangleIcon, X } from "lucide-react";
 import { ObjectListPanel } from "@/components/workplane/ObjectListPanel";
 import type manifoldModule from "manifold-3d";
 import type { ManifoldToplevel } from "manifold-3d";
@@ -204,6 +204,7 @@ import { simplifyTrianglePositions } from "@/lib/meshSimplify";
 import { displayShapeName, makeShapeFromAsset, sceneShape, shapeAssetLabel, shapeAssetMenuLabel, toolbarShapeAssets } from "@/lib/shapeCatalog";
 import { importedShapeFromStl } from "@/lib/stlImport";
 import { exportMeshesToStl } from "@/lib/stlExport";
+import { IMPORT_LINK_MAX_LENGTH, ImportLinkError, stlImportLink } from "@/lib/importLink";
 import { exportMeshesTo3mf, THREE_MF_MEDIA_TYPE } from "@/lib/threemfExport";
 import { importedShapeFromSvg, invalidSvgMeshReason } from "@/lib/svgImport";
 import { toSvgProjection, type SvgProjectionLayer } from "@/lib/svgExport";
@@ -12686,7 +12687,8 @@ export function LayerlingEditor({
     return { shapes: hasSelection ? selectedShapes : shapes, selection: hasSelection };
   }, [hasSelection, selectedShapes, shapes]);
 
-  const exportDesign = useCallback((format: DirectExportFormat, exportName: string) => {
+  /** The bodies a mesh export writes, or `null` after saying why there are none. */
+  const meshExportSource = useCallback(() => {
     const source = exportSource();
     const selectionScoped = source.selection;
     // Ausgeblendetes bleibt draussen, wie bei Tinkercad: ein beiseitegelegtes
@@ -12695,13 +12697,56 @@ export function LayerlingEditor({
     const exportable = sourceShapes.filter((shape) => !shape.hole && !isNonSolidShapeKind(shape.kind));
     if (exportable.length === 0) {
       setNotice(hiddenNote ? t("status.exportOnlyHidden") : selectionScoped ? t("status.selectSolidBeforeExport") : t("status.addSolidBeforeExport"));
-      return;
+      return null;
     }
     const invalidSvg = exportable.map(invalidSvgMeshReason).find((reason): reason is string => Boolean(reason));
     if (invalidSvg) {
       setNotice(t("status.svgInvalid", { reason: invalidSvg }), true);
-      return;
+      return null;
     }
+    return { selectionScoped, sourceShapes, hiddenNote, exportable };
+  }, [exportSource]);
+
+  /** The STL as the export writes it: loose holes cut, overlapping bodies merged. */
+  const buildStlBytes = useCallback(async (sourceShapes: WorkplaneShape[]) => {
+    const { solids: cutSolids, meshes } = await exportBodiesWithLooseHoles(sourceShapes);
+    return exportMeshesToStl((await unionOverlappingExportMeshes(cutSolids, meshes)).meshes);
+  }, []);
+
+  const copyStlLink = useCallback((exportName: string) => {
+    const prepared = meshExportSource();
+    if (!prepared) return;
+    let linkLength = 0;
+    const link = buildStlBytes(prepared.sourceShapes).then((stl) => {
+      const href = stlImportLink(`${window.location.origin}/`, new Uint8Array(stl), exportName.trim() || projectName, Number.POSITIVE_INFINITY);
+      linkLength = href.length;
+      if (href.length > IMPORT_LINK_MAX_LENGTH) throw new ImportLinkError("tooLarge");
+      return href;
+    });
+    const size = () => `${Math.ceil(linkLength / 1024)} KB`;
+    setNotice(t("status.buildingLink"), true);
+    // Safari only lets the clipboard be written during the click, so the text
+    // is handed over as a promise and filled in once the mesh is built.
+    const copied = typeof ClipboardItem !== "undefined" && navigator.clipboard?.write
+      ? navigator.clipboard.write([new ClipboardItem({ "text/plain": link.then((href) => new Blob([href], { type: "text/plain" })) })])
+      : link.then((href) => navigator.clipboard.writeText(href));
+    void copied
+      .then(() => {
+        setTopPanel(null);
+        setNotice(t("status.linkCopied", { size: size() }));
+      })
+      .catch(async () => {
+        const error = await link.then(() => null, (reason: unknown) => reason);
+        if (error instanceof ImportLinkError) setNotice(t("status.linkTooLarge", { size: size() }), true);
+        else if (error instanceof Error) setNotice(localizedError(error.message), true);
+        else setNotice(t("status.linkCopyFailed"), true);
+      });
+  }, [buildStlBytes, meshExportSource, projectName]);
+
+  const exportDesign = useCallback((format: DirectExportFormat, exportName: string) => {
+    const prepared = meshExportSource();
+    if (!prepared) return;
+    const { selectionScoped, sourceShapes, hiddenNote, exportable } = prepared;
     const selectedNotice = exportable.length === 1
       ? t("status.exportedSelectedOne")
       : t("status.exportedSelectedMany", { count: exportable.length });
@@ -12768,7 +12813,7 @@ export function LayerlingEditor({
         else finishNotice(label);
       })
       .catch((error: unknown) => failNotice(label, error));
-  }, [bedPrinter, exportSource, projectName]);
+  }, [bedPrinter, meshExportSource, projectName]);
 
   const exportStepDesign = useCallback(async (exportName: string) => {
     if (stepExporting) {
@@ -14328,6 +14373,7 @@ export function LayerlingEditor({
           onEstimatePrint={exportSolidVolume}
           onClose={() => setTopPanel(null)}
           onExport={exportDesign}
+          onCopyStlLink={copyStlLink}
           onExportLyl={exportLylDesign}
           onExportStep={exportStepDesign}
           onExportImage={exportViewImage}
@@ -15669,6 +15715,7 @@ function TopActionPanel({
   onEstimatePrint,
   onClose,
   onExport,
+  onCopyStlLink,
   onExportLyl,
   onExportStep,
   onExportImage,
@@ -15696,6 +15743,8 @@ function TopActionPanel({
   onEstimatePrint: (shapes: readonly WorkplaneShape[]) => Promise<ExportSolidVolume>;
   onClose: () => void;
   onExport: (format: DirectExportFormat, exportName: string) => void;
+  /** Copies a link that opens the STL as a new design. */
+  onCopyStlLink: (exportName: string) => void;
   onExportLyl: (exportName: string, historyLimit: LylHistoryLimit, target?: LylExportTarget) => void;
   onExportStep: (exportName: string) => void;
   onExportImage: (exportName: string, options: ViewImageOptions) => void;
@@ -16053,6 +16102,18 @@ function TopActionPanel({
                 >
                   <CloudUpload />
                   <span>{t("export.saveToShared")}</span>
+                </button>
+              ) : null}
+              {exportFormat === "stl" ? (
+                <button
+                  className="export-shared-button"
+                  type="button"
+                  title={t("export.copyLinkHint")}
+                  onClick={() => onCopyStlLink(exportName)}
+                  disabled={shapeCount === 0 || stepExporting || lylExporting}
+                >
+                  <LinkIcon />
+                  <span>{t("export.copyLink")}</span>
                 </button>
               ) : null}
               <button className="export-primary-button" onClick={runSelectedExport} disabled={(shapeCount === 0 && exportsBodies) || stepExporting || lylExporting}>

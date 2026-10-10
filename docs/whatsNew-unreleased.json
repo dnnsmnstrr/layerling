@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "title": {
+      "de": "Modelle per Link",
+      "en": "Models by link"
+    },
+    "body": {
+      "de": "Beim STL-Export kopiert „Link kopieren“ einen Link, der das Modell als neuen Entwurf öffnet. Das Modell steckt im Link selbst, für kleine Teile.",
+      "en": "In the STL export, \"Copy link\" copies a link that opens the model as a new design. The model travels inside the link, for small parts."
+    }
+  }
+]

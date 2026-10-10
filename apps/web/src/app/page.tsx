@@ -10,6 +10,7 @@ import { sharedProjectSaveTarget } from "@/lib/sharedProjectTarget";
 import { storeFolderNameProblem, suggestStoreFolderName } from "@/lib/storeFolderName";
 import dynamic from "next/dynamic";
 import { importFailureSummary, importModelFiles } from "@/lib/modelImport";
+import { fetchImportLinkFile, importLinkHost, importLinkStlFile, ImportLinkError, readImportLink } from "@/lib/importLink";
 import { loadTextFonts } from "@/lib/textFonts";
 import { loadStoredCustomFonts } from "@/lib/customFontStore";
 import { applyAppTheme, getAppThemePreference, readStoredAppTheme, resolveAppTheme, setAppTheme, storeAppTheme, subscribeToAppTheme, type AppThemePreference, type ResolvedAppTheme } from "@/lib/appTheme";
@@ -1797,6 +1798,48 @@ export default function Home() {
     },
     [openLylProjectFromFile, projects.length, restoreBackup],
   );
+
+  // A link with #import=… opens its model as a new design, as if it had been dropped here.
+  const importFilesFromDashboardRef = useRef(importFilesFromDashboard);
+  importFilesFromDashboardRef.current = importFilesFromDashboard;
+  useEffect(() => {
+    if (!mounted) return;
+    const importFromLink = async () => {
+      if (!window.location.hash) return;
+      const failed = (error: unknown) => {
+        const code = error instanceof ImportLinkError ? error.code : "damaged";
+        setDashboardNotice(t(`notice.importLink.${code}` as const));
+      };
+      let link;
+      try {
+        link = readImportLink(window.location.hash);
+      } catch (error) {
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        failed(error);
+        return;
+      }
+      if (!link) return;
+      // Cleared first, so a reload does not import the same model twice.
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      try {
+        const fallbackName = t("notice.importLink.defaultName");
+        let file: File;
+        if (link.kind === "stl") {
+          file = importLinkStlFile(link, fallbackName);
+        } else {
+          setDashboardNotice(t("notice.importLink.fetching", { host: importLinkHost(link) }));
+          file = await fetchImportLinkFile(link, fallbackName);
+        }
+        await importFilesFromDashboardRef.current([file]);
+      } catch (error) {
+        failed(error);
+      }
+    };
+    void importFromLink();
+    const onHashChange = () => void importFromLink();
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [mounted]);
 
   const openLatestProject = () => {
     const latest = [...projects].sort((a, b) => b.updatedAt - a.updatedAt)[0];

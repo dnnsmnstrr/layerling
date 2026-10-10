@@ -57,6 +57,13 @@ A design saved with a **newer layerling** may hold things your version does not 
 
 Template pictures are added in sketch mode, see [Sketches](chapter:sketches).
 
+### Opening a model from a link
+
+A link can carry a model. Whoever opens it gets the model as a new design in their own browser, as if they had dropped the file in; nothing is uploaded, because the model sits after the `#` of the address, the part a browser never sends.
+
+- **Sharing a part:** In the export window with STL chosen, {{ui:export.copyLink}} puts such a link on the clipboard. The STL travels inside the link, compressed, so it suits small parts: a bracket or a box of a few thousand triangles makes a link of a few dozen kilobytes. layerling hands out links up to about 1 MB; many chat and mail programs cut long links much sooner, and a link that has been cut off says so when it is opened.
+- **A file elsewhere on the web:** `https://layerling.com/#import=https://example.com/part.stl` fetches the file and opens it. STL, OBJ, 3MF, STEP and SVG work; the site has to allow other pages to fetch its files (CORS), which GitHub's raw files do and many download pages do not. `#name=Bracket&import=…` gives the design a name.
+
 ## Simplifying an imported mesh
 
 A scanned or sculpted mesh often has far more triangles than its shape needs, and every one of them is carried along while you move, cut and save. {{ui:simplify.title}} in the Modify group (or in the right-click menu of the body) shows the mesh as it is next to what a chosen share of its triangles would leave of it; both views turn and zoom together with the mouse buttons of the workplane. Set how much to keep as a percentage or a number of triangles, and {{ui:simplify.apply}} takes the lighter mesh. The result is a plain mesh: for the result of a cut or merge, {{ui:group.edit}} and its original parts are given up.
